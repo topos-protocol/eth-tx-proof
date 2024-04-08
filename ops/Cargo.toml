@@ -5,14 +5,13 @@ license = "MIT or Apache-2.0"
 edition = "2021"
 
 [dependencies]
+ethers = { workspace = true }
 paladin-core = { workspace = true }
-serde = { workspace = true }
 proof_gen = { workspace = true }
+rlp = "0.5.2"
+serde = { workspace = true }
 trace_decoder = { workspace = true }
 tracing = { workspace = true }
-ethers = { workspace = true }
-
-rlp = "0.5.2"
 
 # Local dependencies
 common = { path = "../common" }

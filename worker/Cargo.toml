@@ -5,10 +5,10 @@ license = "MIT or Apache-2.0"
 edition = "2021"
 
 [dependencies]
-paladin-core = { workspace = true }
 anyhow = { workspace = true }
-dotenvy = { workspace = true }
 clap = { workspace = true }
+dotenvy = { workspace = true }
+paladin-core = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
