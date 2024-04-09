@@ -8,9 +8,10 @@ use mpt_trie::nibbles::{Nibbles, NibblesIntern};
 use mpt_trie::partial_trie::PartialTrie;
 use mpt_trie::partial_trie::{HashedPartialTrie, Node};
 use mpt_trie::trie_subsets::create_trie_subset;
+use plonky2::field::goldilocks_field::GoldilocksField;
 use smt_trie::code::hash_bytecode_u256;
 use smt_trie::db::MemoryDb;
-use smt_trie::smt::Smt;
+use smt_trie::smt::{Smt, Node as SmtNode};
 
 use crate::utils::keccak;
 use crate::EMPTY_TRIE_HASH;
@@ -123,13 +124,19 @@ impl Mpt {
     }
 }
 
-pub fn insert_smt(smt: &mut Smt<MemoryDb>, proof: Vec<Bytes>) {
+type PoseidonOutput = [GoldilocksField; 4];
+pub struct SmtData {
+    pub smt: HashMap<PoseidonOutput, SmtNode>,
+    pub root: PoseidonOutput,
+}
+
+pub fn insert_smt(smt: &mut SmtData, proof: Vec<Bytes>) {
     for p in proof.into_iter() {
         insert_smt_helper(smt, p);
     }
 }
 
-fn insert_smt_helper(smt: &mut Smt<MemoryDb>, rlp_node: Bytes) {
+fn insert_smt_helper(smt: &mut SmtData, rlp_node: Bytes) {
     smt.insert(H256(keccak(&rlp_node)), MptNode(rlp_node.to_vec()));
 
     let a = rlp::decode_list::<Vec<u8>>(&rlp_node);
