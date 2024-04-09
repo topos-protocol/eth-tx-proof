@@ -11,7 +11,7 @@ use proof_gen::types::AllRecursiveCircuits;
 use crate::parsing::{parse_range, RangeParseError};
 
 /// Number of tables defined in plonky2.
-const NUM_TABLES: usize = 7;
+const NUM_TABLES: usize = 8;
 
 /// New type wrapper for [`Range`] that implements [`FromStr`] and [`Display`].
 ///
@@ -64,6 +64,7 @@ pub enum Circuit {
     KeccakSponge,
     Logic,
     Memory,
+    Poseidon,
 }
 
 impl Display for Circuit {
@@ -83,6 +84,7 @@ impl Circuit {
             Circuit::KeccakSponge => 9..15,
             Circuit::Logic => 12..18,
             Circuit::Memory => 17..28,
+            Circuit::Poseidon => 4..25,
         }
     }
 
@@ -96,6 +98,7 @@ impl Circuit {
             Circuit::KeccakSponge => "KECCAK_SPONGE_CIRCUIT_SIZE",
             Circuit::Logic => "LOGIC_CIRCUIT_SIZE",
             Circuit::Memory => "MEMORY_CIRCUIT_SIZE",
+            Circuit::Poseidon => "POSEIDON_CIRCUIT_SIZE",
         }
     }
 
@@ -109,6 +112,7 @@ impl Circuit {
             Circuit::KeccakSponge => "keccak sponge",
             Circuit::Logic => "logic",
             Circuit::Memory => "memory",
+            Circuit::Poseidon => "poseidon",
         }
     }
 }
@@ -123,6 +127,7 @@ impl From<usize> for Circuit {
             4 => Circuit::KeccakSponge,
             5 => Circuit::Logic,
             6 => Circuit::Memory,
+            7 => Circuit::Memory,
             _ => unreachable!(),
         }
     }
@@ -144,6 +149,7 @@ impl Default for CircuitConfig {
                 Circuit::KeccakSponge.default_size(),
                 Circuit::Logic.default_size(),
                 Circuit::Memory.default_size(),
+                Circuit::Poseidon.default_size(),
             ],
         }
     }
@@ -186,6 +192,7 @@ impl CircuitConfig {
                 }
                 Circuit::Logic => format!("l_{}-{}", range.start, range.end),
                 Circuit::Memory => format!("m_{}-{}", range.start, range.end),
+                Circuit::Poseidon => format!("p_{}-{}", range.start, range.end),
             })
             .fold(String::new(), |mut acc, s| {
                 if !acc.is_empty() {

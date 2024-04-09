@@ -791,7 +791,7 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "clap",
- "evm_arithmetization",
+ "evm_arithmetization 0.1.3 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
  "plonky2",
  "proof_gen",
  "thiserror",
@@ -1684,7 +1684,7 @@ dependencies = [
  "jemallocator",
  "keccak-hash 0.10.0",
  "log",
- "mpt_trie",
+ "mpt_trie 0.2.1 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=develop)",
  "num",
  "num-bigint",
  "once_cell",
@@ -1699,6 +1699,42 @@ dependencies = [
  "rlp-derive",
  "serde",
  "serde_json",
+ "starky",
+ "static_assertions",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "evm_arithmetization"
+version = "0.1.3"
+source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen#8ab1df1c965a541016d4ebcd7df360b6c46370dd"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "env_logger",
+ "ethereum-types",
+ "hashbrown 0.14.3",
+ "hex-literal",
+ "itertools",
+ "jemallocator",
+ "keccak-hash 0.10.0",
+ "log",
+ "mpt_trie 0.2.1 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
+ "num",
+ "num-bigint",
+ "once_cell",
+ "pest",
+ "pest_derive",
+ "plonky2",
+ "plonky2_maybe_rayon",
+ "plonky2_util",
+ "rand",
+ "rand_chacha",
+ "rlp",
+ "rlp-derive",
+ "serde",
+ "serde_json",
+ "smt_trie",
  "starky",
  "static_assertions",
  "tiny-keccak",
@@ -2386,6 +2422,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "impl-num-traits"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "951641f13f873bff03d4bf19ae8bec531935ac0ac2cc775f84d7edfdcfed3f17"
+dependencies = [
+ "integer-sqrt",
+ "num-traits",
+ "uint",
+]
+
+[[package]]
 name = "impl-rlp"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2459,6 +2506,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "integer-sqrt"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "276ec31bcb4a9ee45f58bec6f9ec700ae4cf4f4f8f2fa7e06cb406bd5ffdd770"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]
@@ -2666,11 +2722,11 @@ dependencies = [
  "common",
  "dotenvy",
  "ethers",
- "evm_arithmetization",
+ "evm_arithmetization 0.1.3 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
  "futures",
  "hex",
  "itertools",
- "mpt_trie",
+ "mpt_trie 0.2.1 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
  "ops",
  "paladin-core",
  "plonky2",
@@ -2679,6 +2735,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
+ "smt_trie",
  "tokio",
  "trace_decoder",
  "tracing",
@@ -2823,6 +2880,30 @@ dependencies = [
  "enum-as-inner",
  "ethereum-types",
  "hex",
+ "keccak-hash 0.10.0",
+ "log",
+ "num",
+ "num-traits",
+ "parking_lot",
+ "rlp",
+ "serde",
+ "thiserror",
+ "uint",
+]
+
+[[package]]
+name = "mpt_trie"
+version = "0.2.1"
+source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen#8ab1df1c965a541016d4ebcd7df360b6c46370dd"
+dependencies = [
+ "bytes",
+ "enum-as-inner",
+ "ethereum-types",
+ "hex",
+ "impl-codec",
+ "impl-num-traits",
+ "impl-rlp",
+ "impl-serde",
  "keccak-hash 0.10.0",
  "log",
  "num",
@@ -3027,6 +3108,7 @@ version = "0.1.0"
 dependencies = [
  "common",
  "ethers",
+ "evm_arithmetization 0.1.3 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
  "paladin-core",
  "proof_gen",
  "rlp",
@@ -3600,15 +3682,14 @@ dependencies = [
 [[package]]
 name = "proof_gen"
 version = "0.1.3"
-source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=develop#423e2614d31d323e950b4a461a27ef565a820b75"
+source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen#8ab1df1c965a541016d4ebcd7df360b6c46370dd"
 dependencies = [
  "ethereum-types",
- "evm_arithmetization",
+ "evm_arithmetization 0.1.3 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
  "log",
  "paste",
  "plonky2",
  "serde",
- "trace_decoder",
 ]
 
 [[package]]
@@ -4407,6 +4488,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
+name = "smt_trie"
+version = "0.1.0"
+source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen#8ab1df1c965a541016d4ebcd7df360b6c46370dd"
+dependencies = [
+ "bytes",
+ "enum-as-inner",
+ "ethereum-types",
+ "hex",
+ "hex-literal",
+ "keccak-hash 0.10.0",
+ "log",
+ "num-traits",
+ "parking_lot",
+ "plonky2",
+ "rand",
+ "rlp",
+ "serde",
+ "thiserror",
+ "uint",
+]
+
+[[package]]
 name = "socket2"
 version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4965,7 +5068,7 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 [[package]]
 name = "trace_decoder"
 version = "0.3.0"
-source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=develop#423e2614d31d323e950b4a461a27ef565a820b75"
+source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen#8ab1df1c965a541016d4ebcd7df360b6c46370dd"
 dependencies = [
  "bytes",
  "ciborium",
@@ -4973,12 +5076,12 @@ dependencies = [
  "enum-as-inner",
  "enumn",
  "ethereum-types",
- "evm_arithmetization",
+ "evm_arithmetization 0.1.3 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=develop)",
  "hex",
  "hex-literal",
  "keccak-hash 0.10.0",
  "log",
- "mpt_trie",
+ "mpt_trie 0.2.1 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=develop)",
  "rlp",
  "rlp-derive",
  "serde",

@@ -4,7 +4,7 @@ use std::{
 };
 
 use ethers::{
-    types::{Address, H256, U256},
+    types::{Address, BigEndianHash, H256, U256},
     utils::rlp,
 };
 use evm_arithmetization::{
@@ -16,7 +16,8 @@ use mpt_trie::partial_trie::PartialTrie;
 use mpt_trie::{
     nibbles::Nibbles, partial_trie::HashedPartialTrie, trie_subsets::create_trie_subset,
 };
-use trace_decoder::types::{HashedAccountAddr, HashedNodeAddr, TxnProofGenIR};
+use smt_trie::smt::hash_serialize_u256;
+use trace_decoder::types::{HashedAccountAddr, HashedNodeAddr};
 
 use crate::{utils::keccak, PartialTrieState};
 
@@ -39,7 +40,7 @@ pub(crate) struct BlockMetaAndHashes {
 /// `[add_withdrawals_to_txns]`), where the final one will mutate the
 /// state trie.
 pub(crate) fn pad_gen_inputs_with_dummy_inputs_if_needed(
-    gen_inputs: &mut Vec<TxnProofGenIR>,
+    gen_inputs: &mut Vec<GenerationInputs>,
     other_data: &BlockMetaAndHashes,
     final_extra_data: &ExtraBlockData,
     initial_extra_data: &ExtraBlockData,
@@ -94,7 +95,7 @@ pub(crate) fn pad_gen_inputs_with_dummy_inputs_if_needed(
 /// - If no dummy proofs are already present, then a dummy proof that just
 ///   contains the withdrawals is appended to the end of the IR vec.
 pub(crate) fn add_withdrawals_to_txns(
-    txn_ir: &mut Vec<TxnProofGenIR>,
+    txn_ir: &mut Vec<GenerationInputs>,
     other_data: &BlockMetaAndHashes,
     final_extra_data: &ExtraBlockData,
     final_trie_state: &mut PartialTrieState,
@@ -222,7 +223,7 @@ fn create_dummy_gen_input_common(
     sub_tries: TrieInputs,
 ) -> GenerationInputs {
     let trie_roots_after = TrieRoots {
-        state_root: sub_tries.state_trie.hash(),
+        state_root: H256::from_uint(&hash_serialize_u256(&sub_tries.state_smt)),
         transactions_root: sub_tries.transactions_trie.hash(),
         receipts_root: sub_tries.receipts_trie.hash(),
     };
@@ -268,14 +269,13 @@ fn create_dummy_proof_trie_inputs(
         .collect();
 
     TrieInputs {
-        state_trie: state_trie_hashed_for_withdrawals,
+        state_smt: state_trie_hashed_for_withdrawals,
         transactions_trie: create_fully_hashed_out_sub_partial_trie(
             &final_tries_at_end_of_block.txn,
         ),
         receipts_trie: create_fully_hashed_out_sub_partial_trie(
             &final_tries_at_end_of_block.receipt,
         ),
-        storage_tries: partial_sub_storage_tries,
     }
 }
 

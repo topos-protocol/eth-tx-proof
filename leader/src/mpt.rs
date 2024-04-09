@@ -4,13 +4,16 @@ use std::sync::Arc;
 use ethers::prelude::*;
 use ethers::utils::rlp;
 use evm_arithmetization::generation::mpt::AccountRlp;
-use mpt_trie::nibbles::Nibbles;
+use mpt_trie::nibbles::{Nibbles, NibblesIntern};
 use mpt_trie::partial_trie::PartialTrie;
 use mpt_trie::partial_trie::{HashedPartialTrie, Node};
 use mpt_trie::trie_subsets::create_trie_subset;
+use smt_trie::code::hash_bytecode_u256;
+use smt_trie::db::MemoryDb;
+use smt_trie::smt::Smt;
 
 use crate::utils::keccak;
-use crate::EMPTY_HASH;
+use crate::EMPTY_TRIE_HASH;
 
 #[derive(Clone, Debug)]
 pub struct MptNode(Vec<u8>);
@@ -20,11 +23,6 @@ pub struct Mpt {
     pub mpt: HashMap<H256, MptNode>,
     pub root: H256,
 }
-
-const EMPTY_TRIE_HASH: H256 = H256([
-    86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224, 27, 153,
-    108, 173, 192, 1, 98, 47, 181, 227, 99, 180, 33,
-]);
 
 impl Mpt {
     pub fn new() -> Self {
@@ -88,7 +86,7 @@ impl Mpt {
                     } else {
                         Nibbles {
                             count: 0,
-                            packed: U512::zero(),
+                            packed: NibblesIntern::zero(),
                         }
                     };
                     ext_prefix.push_nibble_front(b);
@@ -125,16 +123,15 @@ impl Mpt {
     }
 }
 
-pub fn insert_mpt(mpt: &mut Mpt, proof: Vec<Bytes>) {
+pub fn insert_smt(smt: &mut Smt<MemoryDb>, proof: Vec<Bytes>) {
     for p in proof.into_iter() {
-        // mpt.mpt.insert(H256(keccak256(&p)), MptNode(p.to_vec()));
-        insert_mpt_helper(mpt, p);
+        insert_smt_helper(smt, p);
     }
 }
 
-fn insert_mpt_helper(mpt: &mut Mpt, rlp_node: Bytes) {
-    mpt.mpt
-        .insert(H256(keccak(&rlp_node)), MptNode(rlp_node.to_vec()));
+fn insert_smt_helper(smt: &mut Smt<MemoryDb>, rlp_node: Bytes) {
+    smt.insert(H256(keccak(&rlp_node)), MptNode(rlp_node.to_vec()));
+
     let a = rlp::decode_list::<Vec<u8>>(&rlp_node);
     if a.len() == 2 {
         let prefix = a[0].clone();
@@ -145,7 +142,7 @@ fn insert_mpt_helper(mpt: &mut Mpt, rlp_node: Bytes) {
                 nibbles.to_hex_prefix_encoding(is_leaf).to_vec(),
                 a[1].clone(),
             ]);
-            mpt.mpt.insert(H256(keccak(&node)), MptNode(node.to_vec()));
+            smt.insert(H256(keccak(&node)), MptNode(node.to_vec()));
             if nibbles.is_empty() {
                 break;
             }
@@ -165,7 +162,7 @@ fn nibbles_from_hex_prefix_encoding(b: &[u8]) -> Nibbles {
             Nibbles {
                 count: 2 * b.len() - 1,
                 // packed: U512::from_bytes_be(&bs).unwrap(),
-                packed: U512::from_big_endian(&b),
+                packed: NibblesIntern::from_big_endian(&b),
             }
             // Nibbles::from_bytes_be(&b).unwrap()
         }
@@ -176,7 +173,7 @@ fn nibbles_from_hex_prefix_encoding(b: &[u8]) -> Nibbles {
 pub fn apply_diffs(
     mut mpt: HashedPartialTrie,
     mut storage: HashMap<H256, HashedPartialTrie>,
-    contract_code: &mut HashMap<H256, Vec<u8>>,
+    contract_code: &mut HashMap<U256, Vec<u8>>,
     trace: GethTrace,
 ) -> (HashedPartialTrie, HashMap<H256, HashedPartialTrie>) {
     let diff = if let GethTrace::Known(GethTraceFrame::PreStateTracer(PreStateFrame::Diff(diff))) =
@@ -251,29 +248,30 @@ pub fn apply_diffs(
     for (addr, acc) in &diff.post {
         if !diff.pre.contains_key(addr) {
             // New account
-            let code_hash = acc
+            let (code_hash, code_length) = acc
                 .code
                 .clone()
                 .map(|s| {
                     if s.is_empty() {
-                        EMPTY_HASH
+                        (hash_bytecode_u256(vec![]), 0.into())
                     } else {
                         let code = s.split_at(2).1;
                         let bytes = hex::decode(code).unwrap();
-                        let h = H256(keccak(&bytes));
+                        let h = hash_bytecode_u256(bytes.to_vec());
                         contract_code.insert(h, bytes);
-                        h
+                        (h, bytes.len().into())
                     }
                 })
-                .unwrap_or(EMPTY_HASH);
+                .unwrap_or((hash_bytecode_u256(vec![]), 0.into()));
             let account = AccountRlp {
                 nonce: acc.nonce.unwrap_or(U256::zero()),
                 balance: acc.balance.unwrap_or(U256::zero()),
-                storage_root: storage
-                    .get(&H256(keccak(addr.0)))
-                    .unwrap_or(&empty_node.clone())
-                    .hash(),
+                // storage_root: storage
+                //     .get(&H256(keccak(addr.0)))
+                //     .unwrap_or(&empty_node.clone())
+                //     .hash(),
                 code_hash,
+                code_length,
             };
             mpt.insert(tok(addr), rlp::encode(&account).to_vec())
                 .unwrap();
@@ -281,35 +279,31 @@ pub fn apply_diffs(
             let old = mpt
                 .get(tok(addr))
                 .map(|d| rlp::decode(d).unwrap())
-                .unwrap_or(AccountRlp {
-                    nonce: U256::zero(),
-                    balance: U256::zero(),
-                    storage_root: empty_node.hash(),
-                    code_hash: EMPTY_HASH,
-                });
-            let code_hash = acc
+                .unwrap_or(AccountRlp::default());
+            let (code_hash, code_length) = acc
                 .code
                 .clone()
                 .map(|s| {
                     if s.is_empty() {
-                        EMPTY_HASH
+                        (hash_bytecode_u256(vec![]), 0.into())
                     } else {
                         let code = s.split_at(2).1;
                         let bytes = hex::decode(code).unwrap();
-                        let h = H256(keccak(&bytes));
+                        let h = hash_bytecode_u256(bytes.to_vec());
                         contract_code.insert(h, bytes);
-                        h
+                        (h, bytes.len().into())
                     }
                 })
-                .unwrap_or(old.code_hash);
+                .unwrap_or((old.code_hash, old.code_length));
             let account = AccountRlp {
                 nonce: acc.nonce.unwrap_or(old.nonce),
                 balance: acc.balance.unwrap_or(old.balance),
-                storage_root: storage
-                    .get(&H256(keccak(addr.0)))
-                    .map(|trie| trie.hash())
-                    .unwrap_or(old.storage_root),
+                // storage_root: storage
+                //     .get(&H256(keccak(addr.0)))
+                //     .map(|trie| trie.hash())
+                //     .unwrap_or(old.storage_root),
                 code_hash,
+                code_length,
             };
             mpt.insert(tok(addr), rlp::encode(&account).to_vec())
                 .unwrap();

@@ -17,10 +17,11 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # zk-evm dependencies
 plonky2 = "0.2.1"
-mpt_trie = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "develop" }
-evm_arithmetization = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "develop" }
-trace_decoder = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "develop" }
-proof_gen = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "develop" }
+smt_trie = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "type2/proof_gen" }
+mpt_trie = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "type2/proof_gen" }
+evm_arithmetization = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "type2/proof_gen" }
+trace_decoder = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "type2/proof_gen" }
+proof_gen = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "type2/proof_gen" }
 
 [profile.release]
 opt-level = 3

@@ -11,9 +11,9 @@ use leader::gather_witness;
 mod cli;
 mod prover;
 use cli::Command;
+use evm_arithmetization::GenerationInputs;
 use ops::register;
 use paladin::runtime::Runtime;
-use trace_decoder::types::TxnProofGenIR;
 mod init;
 
 #[tokio::main]
@@ -53,7 +53,7 @@ async fn main() -> Result<()> {
             let mut file = std::fs::File::open(&input_witness)?;
             let mut buffer = String::new();
             file.read_to_string(&mut buffer)?;
-            let proof_gen_ir: Vec<TxnProofGenIR> = serde_json::from_str(&buffer)?;
+            let proof_gen_ir: Vec<GenerationInputs> = serde_json::from_str(&buffer)?;
             let prover_input = prover::ProverInput { proof_gen_ir };
             let runtime = Runtime::from_config(&paladin, register()).await?;
             let proof = prover_input.prove(&runtime, None).await?;

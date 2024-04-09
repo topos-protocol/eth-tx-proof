@@ -6,6 +6,7 @@ edition = "2021"
 
 [dependencies]
 ethers = { workspace = true }
+evm_arithmetization = { workspace = true }
 paladin-core = { workspace = true }
 proof_gen = { workspace = true }
 rlp = "0.5.2"
