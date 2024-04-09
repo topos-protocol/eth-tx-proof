@@ -8,10 +8,12 @@ use mpt_trie::nibbles::{Nibbles, NibblesIntern};
 use mpt_trie::partial_trie::PartialTrie;
 use mpt_trie::partial_trie::{HashedPartialTrie, Node};
 use mpt_trie::trie_subsets::create_trie_subset;
-use plonky2::field::goldilocks_field::GoldilocksField;
+use plonky2::field::goldilocks_field::GoldilocksField as F;
+use plonky2::field::types::Field;
+use plonky2::hash::poseidon::Poseidon;
 use smt_trie::code::hash_bytecode_u256;
 use smt_trie::db::MemoryDb;
-use smt_trie::smt::{Smt, Node as SmtNode};
+use smt_trie::smt::{Key, Node as SmtNode, Smt};
 
 use crate::utils::keccak;
 use crate::EMPTY_TRIE_HASH;
@@ -124,38 +126,51 @@ impl Mpt {
     }
 }
 
-type PoseidonOutput = [GoldilocksField; 4];
+type PoseidonOutput = [F; 4];
+
+#[derive(Default)]
 pub struct SmtData {
-    pub smt: HashMap<PoseidonOutput, SmtNode>,
+    pub smt: HashMap<Key, SmtNode>,
     pub root: PoseidonOutput,
 }
 
-pub fn insert_smt(smt: &mut SmtData, proof: Vec<Bytes>) {
-    for p in proof.into_iter() {
-        insert_smt_helper(smt, p);
+impl SmtData {
+    pub fn to_partial_trie(self) -> Vec<U256> {
+        unimplemented!()
     }
 }
 
-fn insert_smt_helper(smt: &mut SmtData, rlp_node: Bytes) {
-    smt.insert(H256(keccak(&rlp_node)), MptNode(rlp_node.to_vec()));
-
-    let a = rlp::decode_list::<Vec<u8>>(&rlp_node);
-    if a.len() == 2 {
-        let prefix = a[0].clone();
-        let is_leaf = (prefix[0] >> 4 == 2) || (prefix[0] >> 4 == 3);
-        let mut nibbles = nibbles_from_hex_prefix_encoding(&prefix);
-        loop {
-            let node = rlp::encode_list::<Vec<u8>, _>(&[
-                nibbles.to_hex_prefix_encoding(is_leaf).to_vec(),
-                a[1].clone(),
-            ]);
-            smt.insert(H256(keccak(&node)), MptNode(node.to_vec()));
-            if nibbles.is_empty() {
-                break;
-            }
-            nibbles.pop_next_nibble_front();
-        }
+pub fn insert_smt(smt: &mut SmtData, proof: Vec<u8>) {
+    // Nodes are serialized as 12 Field elements? 
+    for p in proof.chunks_exact(8*7) {
+        insert_smt_helper(smt, 
+            SmtNode(p.chunks_exact(7)
+            .map(|x| F::from_canonical_u64(u64::from_be_bytes(x.try_into().unwrap())))
+            .collect::<Vec<F>>().try_into().unwrap()));
     }
+}
+
+fn insert_smt_helper(smt: &mut SmtData, serialized_node: SmtNode) {
+    smt.smt.insert(Key(F::poseidon(serialized_node.0)[0..4].try_into().unwrap()), serialized_node);
+
+    // TODO: Is this necessary for for smt?
+    // let a = rlp::decode_list::<Vec<u8>>(&rlp_node);
+    // if a.len() == 2 {
+    //     let prefix = a[0].clone();
+    //     let is_leaf = (prefix[0] >> 4 == 2) || (prefix[0] >> 4 == 3);
+    //     let mut nibbles = nibbles_from_hex_prefix_encoding(&prefix);
+    //     loop {
+    //         let node = rlp::encode_list::<Vec<u8>, _>(&[
+    //             nibbles.to_hex_prefix_encoding(is_leaf).to_vec(),
+    //             a[1].clone(),
+    //         ]);
+    //         smt.insert(H256(keccak(&node)), MptNode(node.to_vec()));
+    //         if nibbles.is_empty() {
+    //             break;
+    //         }
+    //         nibbles.pop_next_nibble_front();
+    //     }
+    // }
 }
 
 fn nibbles_from_hex_prefix_encoding(b: &[u8]) -> Nibbles {
@@ -265,7 +280,8 @@ pub fn apply_diffs(
                         let code = s.split_at(2).1;
                         let bytes = hex::decode(code).unwrap();
                         let h = hash_bytecode_u256(bytes.to_vec());
-                        contract_code.insert(h, bytes);
+                        // TODO: The clone is just for a borrowing issue.
+                        contract_code.insert(h, bytes.clone());
                         (h, bytes.len().into())
                     }
                 })
@@ -297,7 +313,8 @@ pub fn apply_diffs(
                         let code = s.split_at(2).1;
                         let bytes = hex::decode(code).unwrap();
                         let h = hash_bytecode_u256(bytes.to_vec());
-                        contract_code.insert(h, bytes);
+                        // TODO: the clone is just a hotfix
+                        contract_code.insert(h, bytes.clone());
                         (h, bytes.len().into())
                     }
                 })

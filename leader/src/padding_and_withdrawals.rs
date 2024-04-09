@@ -257,26 +257,28 @@ fn create_dummy_proof_trie_inputs(
     final_tries_at_end_of_block: &PartialTrieState,
     state_trie_hashed_for_withdrawals: HashedPartialTrie,
 ) -> TrieInputs {
-    let partial_sub_storage_tries: Vec<_> = final_tries_at_end_of_block
-        .storage
-        .iter()
-        .map(|(hashed_acc_addr, s_trie)| {
-            (
-                *hashed_acc_addr,
-                create_fully_hashed_out_sub_partial_trie(s_trie),
-            )
-        })
-        .collect();
+    // let partial_sub_storage_tries: Vec<_> = unimplemented!();
+    // final_tries_at_end_of_block
+    //     .storage
+    //     .iter()
+    //     .map(|(hashed_acc_addr, s_trie)| {
+    //         (
+    //             *hashed_acc_addr,
+    //             create_fully_hashed_out_sub_partial_trie(s_trie),
+    //         )
+    //     })
+    //     .collect();
 
-    TrieInputs {
-        state_smt: state_trie_hashed_for_withdrawals,
-        transactions_trie: create_fully_hashed_out_sub_partial_trie(
-            &final_tries_at_end_of_block.txn,
-        ),
-        receipts_trie: create_fully_hashed_out_sub_partial_trie(
-            &final_tries_at_end_of_block.receipt,
-        ),
-    }
+    unimplemented!()
+    // TrieInputs {
+    //     state_smt: state_trie_hashed_for_withdrawals,
+    //     transactions_trie: create_fully_hashed_out_sub_partial_trie(
+    //         &final_tries_at_end_of_block.txn,
+    //     ),
+    //     receipts_trie: create_fully_hashed_out_sub_partial_trie(
+    //         &final_tries_at_end_of_block.receipt,
+    //     ),
+    // }
 }
 
 fn create_minimal_state_partial_trie(

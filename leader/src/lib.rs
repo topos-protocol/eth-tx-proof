@@ -17,11 +17,13 @@ use evm_arithmetization::generation::{GenerationInputs, TrieInputs};
 use evm_arithmetization::proof::TrieRoots;
 use evm_arithmetization::proof::{BlockMetadata, ExtraBlockData};
 use itertools::izip;
+use mpt::SmtData;
 use mpt_trie::nibbles::Nibbles;
 use mpt_trie::partial_trie::{HashedPartialTrie, Node, PartialTrie};
 use padding_and_withdrawals::{
     add_withdrawals_to_txns, pad_gen_inputs_with_dummy_inputs_if_needed, BlockMetaAndHashes,
 };
+use plonky2::field::goldilocks_field::GoldilocksField;
 use rpc::{CliqueGetSignersAtHashResponse, EthChainIdResponse};
 use smt_trie::code::hash_bytecode_u256;
 use smt_trie::db::MemoryDb;
@@ -179,9 +181,9 @@ pub async fn gather_witness(
         .await?
         .ok_or_else(|| anyhow!("Block not found. Block number: {}", block_number))?;
 
-    let mut state_smt = Smt::<MemoryDb>::default();
+    let mut state_smt = SmtData::default();
     let mut contract_codes = contract_codes();
-    let mut storage_mpts: HashMap<_, Mpt> = HashMap::new();
+    let mut storage_mpts: HashMap<[GoldilocksField; 4], Mpt> = HashMap::new();
     let mut txn_rlps = vec![];
 
     let chain_id = EthChainIdResponse::fetch(provider.url().to_string())
@@ -252,11 +254,11 @@ pub async fn gather_witness(
             provider,
         )
         .await?;
-        insert_smt(&mut state_smt, proof);
+        insert_smt(&mut state_smt, proof.iter().map(|bytes| bytes.to_vec()).flatten().collect::<Vec<u8>>());
 
         let (next_proof, next_storage_proof, _next_storage_hash, _next_account_is_empty) =
             get_proof(*address, storage_keys, block_number.into(), provider).await?;
-        insert_smt(&mut state_smt, next_proof);
+        insert_smt(&mut state_smt, next_proof.iter().map(|bytes| bytes.to_vec()).flatten().collect::<Vec<u8>>());
 
         let key = keccak(address.0);
         // if !empty_storage {
@@ -307,11 +309,11 @@ pub async fn gather_witness(
                     provider,
                 )
                 .await?;
-                insert_smt(&mut state_smt, proof);
+                insert_smt(&mut state_smt, proof.iter().map(|bytes| bytes.to_vec()).flatten().collect::<Vec<u8>>());
 
                 let (next_proof, next_storage_proof, _next_storage_hash, _next_account_is_empty) =
                     get_proof(address, storage_keys, block_number.into(), provider).await?;
-                insert_smt(&mut state_smt, next_proof);
+                insert_smt(&mut state_smt, next_proof.iter().map(|bytes| bytes.to_vec()).flatten().collect::<Vec<u8>>());
 
                 let key = keccak(address.0);
                 // if !empty_storage {
@@ -334,7 +336,7 @@ pub async fn gather_witness(
         for w in v {
             let (proof, _storage_proof, _storage_hash, _account_is_empty) =
                 get_proof(w.address, vec![], (block_number - 1).into(), provider).await?;
-            insert_smt(&mut state_smt, proof);
+            insert_smt(&mut state_smt, proof.iter().map(|bytes| bytes.to_vec()).flatten().collect::<Vec<u8>>());
         }
     }
 
@@ -373,175 +375,175 @@ pub async fn gather_witness(
         .iter()
         .map(|(a, m)| (*a, m.to_partial_trie()))
         .collect();
+    unimplemented!()
+    // let mut proof_gen_ir = Vec::new();
+    // for (i, (tx, mut touched, signed_txn)) in izip!(txns_info, traces, txn_rlps)
+    //     .enumerate()
+    //     .take(tx_index + 1)
+    // {
+    //     tracing::info!("Processing {}-th transaction: {:?}", i, tx.hash);
+    //     let last_tx = i == block.transactions.len() - 1;
+    //     let trace = provider
+    //         .debug_trace_transaction(tx.hash, tracing_options_diff())
+    //         .await?;
+    //     let has_storage_deletion = has_storage_deletion(&trace);
+    //     let (next_state_smt, next_storage_mpts) = apply_diffs(
+    //         state_smt.clone(),
+    //         storage_mpts.clone(),
+    //         &mut contract_codes,
+    //         trace,
+    //     );
+    //     // For the last tx, we want to include the withdrawal addresses in the state
+    //     // trie.
+    //     if last_tx {
+    //         for (addr, _) in &wds {
+    //             if !touched.contains_key(addr) {
+    //                 touched.insert(*addr, AccountState::default());
+    //             }
+    //         }
+    //     }
+    //     let (trimmed_state_smt, trimmed_storage_mpts) = trim(
+    //         state_smt.clone(),
+    //         storage_mpts.clone(),
+    //         touched.clone(),
+    //         has_storage_deletion,
+    //     );
+    //     assert_eq!(trimmed_state_smt.hash(), state_smt.hash());
+    //     let receipt = provider.get_transaction_receipt(tx.hash).await?.unwrap();
+    //     let mut new_bloom = bloom;
+    //     new_bloom.accrue_bloom(&receipt.logs_bloom);
+    //     let mut new_txns_mpt = txns_mpt.clone();
+    //     new_txns_mpt
+    //         .insert(
+    //             Nibbles::from_bytes_be(&rlp::encode(&receipt.transaction_index)).unwrap(),
+    //             signed_txn.clone(),
+    //         )
+    //         .unwrap();
+    //     let mut new_receipts_mpt = receipts_mpt.clone();
+    //     let mut bytes = rlp::encode(&receipt).to_vec();
+    //     if !receipt.transaction_type.unwrap().is_zero() {
+    //         bytes.insert(0, receipt.transaction_type.unwrap().0[0] as u8);
+    //     }
+    //     new_receipts_mpt
+    //         .insert(
+    //             Nibbles::from_bytes_be(&rlp::encode(&receipt.transaction_index)).unwrap(),
+    //             bytes,
+    //         )
+    //         .unwrap();
 
-    let mut proof_gen_ir = Vec::new();
-    for (i, (tx, mut touched, signed_txn)) in izip!(txns_info, traces, txn_rlps)
-        .enumerate()
-        .take(tx_index + 1)
-    {
-        tracing::info!("Processing {}-th transaction: {:?}", i, tx.hash);
-        let last_tx = i == block.transactions.len() - 1;
-        let trace = provider
-            .debug_trace_transaction(tx.hash, tracing_options_diff())
-            .await?;
-        let has_storage_deletion = has_storage_deletion(&trace);
-        let (next_state_smt, next_storage_mpts) = apply_diffs(
-            state_smt.clone(),
-            storage_mpts.clone(),
-            &mut contract_codes,
-            trace,
-        );
-        // For the last tx, we want to include the withdrawal addresses in the state
-        // trie.
-        if last_tx {
-            for (addr, _) in &wds {
-                if !touched.contains_key(addr) {
-                    touched.insert(*addr, AccountState::default());
-                }
-            }
-        }
-        let (trimmed_state_smt, trimmed_storage_mpts) = trim(
-            state_smt.clone(),
-            storage_mpts.clone(),
-            touched.clone(),
-            has_storage_deletion,
-        );
-        assert_eq!(trimmed_state_smt.hash(), state_smt.hash());
-        let receipt = provider.get_transaction_receipt(tx.hash).await?.unwrap();
-        let mut new_bloom = bloom;
-        new_bloom.accrue_bloom(&receipt.logs_bloom);
-        let mut new_txns_mpt = txns_mpt.clone();
-        new_txns_mpt
-            .insert(
-                Nibbles::from_bytes_be(&rlp::encode(&receipt.transaction_index)).unwrap(),
-                signed_txn.clone(),
-            )
-            .unwrap();
-        let mut new_receipts_mpt = receipts_mpt.clone();
-        let mut bytes = rlp::encode(&receipt).to_vec();
-        if !receipt.transaction_type.unwrap().is_zero() {
-            bytes.insert(0, receipt.transaction_type.unwrap().0[0] as u8);
-        }
-        new_receipts_mpt
-            .insert(
-                Nibbles::from_bytes_be(&rlp::encode(&receipt.transaction_index)).unwrap(),
-                bytes,
-            )
-            .unwrap();
+    //     // Use withdrawals for the last tx in the block.
+    //     let _withdrawals = if last_tx { wds.clone() } else { vec![] };
+    //     // For the last tx, we check that the final trie roots match those in the block
+    //     // header.
 
-        // Use withdrawals for the last tx in the block.
-        let _withdrawals = if last_tx { wds.clone() } else { vec![] };
-        // For the last tx, we check that the final trie roots match those in the block
-        // header.
+    //     let trie_roots_after = if last_tx {
+    //         TrieRoots {
+    //             state_root: block.state_root,
+    //             transactions_root: block.transactions_root,
+    //             receipts_root: block.receipts_root,
+    //         }
+    //     } else {
+    //         TrieRoots {
+    //             state_root: next_state_smt.hash(),
+    //             transactions_root: new_txns_mpt.hash(),
+    //             receipts_root: new_receipts_mpt.hash(),
+    //         }
+    //     };
+    //     let inputs = GenerationInputs {
+    //         signed_txn: Some(signed_txn),
+    //         tries: TrieInputs {
+    //             state_smt: trimmed_state_smt,
+    //             transactions_trie: txns_mpt.clone(),
+    //             receipts_trie: receipts_mpt.clone(),
+    //         },
+    //         withdrawals: vec![],
+    //         contract_code: contract_codes.clone(),
+    //         block_metadata: block_metadata.clone(),
+    //         block_hashes: block_hashes.clone(),
+    //         gas_used_before: gas_used,
+    //         gas_used_after: gas_used + receipt.gas_used.unwrap(),
+    //         checkpoint_state_trie_root: prev_block.state_root, // TODO: make it configurable
+    //         trie_roots_after,
+    //         txn_number_before: receipt.transaction_index.0[0].into(),
+    //     };
 
-        let trie_roots_after = if last_tx {
-            TrieRoots {
-                state_root: block.state_root,
-                transactions_root: block.transactions_root,
-                receipts_root: block.receipts_root,
-            }
-        } else {
-            TrieRoots {
-                state_root: next_state_smt.hash(),
-                transactions_root: new_txns_mpt.hash(),
-                receipts_root: new_receipts_mpt.hash(),
-            }
-        };
-        let inputs = GenerationInputs {
-            signed_txn: Some(signed_txn),
-            tries: TrieInputs {
-                state_smt: trimmed_state_smt,
-                transactions_trie: txns_mpt.clone(),
-                receipts_trie: receipts_mpt.clone(),
-            },
-            withdrawals: vec![],
-            contract_code: contract_codes.clone(),
-            block_metadata: block_metadata.clone(),
-            block_hashes: block_hashes.clone(),
-            gas_used_before: gas_used,
-            gas_used_after: gas_used + receipt.gas_used.unwrap(),
-            checkpoint_state_trie_root: prev_block.state_root, // TODO: make it configurable
-            trie_roots_after,
-            txn_number_before: receipt.transaction_index.0[0].into(),
-        };
+    //     state_smt = next_state_smt;
+    //     storage_mpts = next_storage_mpts;
+    //     gas_used += receipt.gas_used.unwrap();
+    //     assert_eq!(gas_used, receipt.cumulative_gas_used);
+    //     bloom = new_bloom;
+    //     txns_mpt = new_txns_mpt;
+    //     receipts_mpt = new_receipts_mpt;
 
-        state_smt = next_state_smt;
-        storage_mpts = next_storage_mpts;
-        gas_used += receipt.gas_used.unwrap();
-        assert_eq!(gas_used, receipt.cumulative_gas_used);
-        bloom = new_bloom;
-        txns_mpt = new_txns_mpt;
-        receipts_mpt = new_receipts_mpt;
+    //     proof_gen_ir.push(inputs);
+    // }
 
-        proof_gen_ir.push(inputs);
-    }
+    // let b_data = BlockMetaAndHashes {
+    //     b_meta: block_metadata,
+    //     b_hashes: block_hashes,
+    // };
 
-    let b_data = BlockMetaAndHashes {
-        b_meta: block_metadata,
-        b_hashes: block_hashes,
-    };
+    // let initial_tries_for_dummies = proof_gen_ir
+    //     .first()
+    //     .map(|ir| PartialTrieState {
+    //         state: ir.tries.state_smt.clone(),
+    //         txn: ir.tries.transactions_trie.clone(),
+    //         receipt: ir.tries.receipts_trie.clone(),
+    //     })
+    //     .unwrap_or_else(|| {
+    //         // No starting tries to work with, so we will have tries that are 100% hashed
+    //         // out.
+    //         PartialTrieState {
+    //             state: create_fully_hashed_out_trie_from_hash(block.state_root),
+    //             txn: create_fully_hashed_out_trie_from_hash(EMPTY_TRIE_HASH),
+    //             receipt: create_fully_hashed_out_trie_from_hash(EMPTY_TRIE_HASH),
+    //             storage: HashMap::default(),
+    //         }
+    //     });
 
-    let initial_tries_for_dummies = proof_gen_ir
-        .first()
-        .map(|ir| PartialTrieState {
-            state: ir.tries.state_smt.clone(),
-            txn: ir.tries.transactions_trie.clone(),
-            receipt: ir.tries.receipts_trie.clone(),
-        })
-        .unwrap_or_else(|| {
-            // No starting tries to work with, so we will have tries that are 100% hashed
-            // out.
-            PartialTrieState {
-                state: create_fully_hashed_out_trie_from_hash(block.state_root),
-                txn: create_fully_hashed_out_trie_from_hash(EMPTY_TRIE_HASH),
-                receipt: create_fully_hashed_out_trie_from_hash(EMPTY_TRIE_HASH),
-                storage: HashMap::default(),
-            }
-        });
+    // let initial_extra_data = ExtraBlockData {
+    //     checkpoint_state_trie_root: prev_block.state_root,
+    //     ..Default::default()
+    // };
 
-    let initial_extra_data = ExtraBlockData {
-        checkpoint_state_trie_root: prev_block.state_root,
-        ..Default::default()
-    };
+    // let mut final_tries = PartialTrieState {
+    //     state: state_smt,
+    //     storage: storage_mpts,
+    //     txn: txns_mpt,
+    //     receipt: receipts_mpt,
+    // };
 
-    let mut final_tries = PartialTrieState {
-        state: state_smt,
-        storage: storage_mpts,
-        txn: txns_mpt,
-        receipt: receipts_mpt,
-    };
+    // let final_extra_data = proof_gen_ir
+    //     .last()
+    //     .map(|ir| ExtraBlockData {
+    //         checkpoint_state_trie_root: prev_block.state_root,
+    //         txn_number_before: ir.txn_number_before,
+    //         txn_number_after: ir.txn_number_before,
+    //         gas_used_before: ir.gas_used_after,
+    //         gas_used_after: ir.gas_used_after,
+    //     })
+    //     .unwrap_or_else(|| initial_extra_data.clone());
 
-    let final_extra_data = proof_gen_ir
-        .last()
-        .map(|ir| ExtraBlockData {
-            checkpoint_state_trie_root: prev_block.state_root,
-            txn_number_before: ir.txn_number_before,
-            txn_number_after: ir.txn_number_before,
-            gas_used_before: ir.gas_used_after,
-            gas_used_after: ir.gas_used_after,
-        })
-        .unwrap_or_else(|| initial_extra_data.clone());
+    // let dummies_added = pad_gen_inputs_with_dummy_inputs_if_needed(
+    //     &mut proof_gen_ir,
+    //     &b_data,
+    //     &final_extra_data,
+    //     &initial_extra_data,
+    //     &initial_tries_for_dummies,
+    //     &final_tries,
+    //     !wds.is_empty(),
+    // );
 
-    let dummies_added = pad_gen_inputs_with_dummy_inputs_if_needed(
-        &mut proof_gen_ir,
-        &b_data,
-        &final_extra_data,
-        &initial_extra_data,
-        &initial_tries_for_dummies,
-        &final_tries,
-        !wds.is_empty(),
-    );
+    // add_withdrawals_to_txns(
+    //     &mut proof_gen_ir,
+    //     &b_data,
+    //     &final_extra_data,
+    //     &mut final_tries,
+    //     wds,
+    //     dummies_added,
+    // );
 
-    add_withdrawals_to_txns(
-        &mut proof_gen_ir,
-        &b_data,
-        &final_extra_data,
-        &mut final_tries,
-        wds,
-        dummies_added,
-    );
-
-    Ok(proof_gen_ir)
+    // Ok(proof_gen_ir)
 }
 
 fn create_fully_hashed_out_trie_from_hash(h: TrieRootHash) -> HashedPartialTrie {
