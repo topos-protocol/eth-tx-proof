@@ -11,7 +11,7 @@ paladin-core = { workspace = true }
 proof_gen = { workspace = true }
 rlp = "0.5.2"
 serde = { workspace = true }
-trace_decoder = { workspace = true }
+# trace_decoder = { workspace = true }
 tracing = { workspace = true }
 
 # Local dependencies

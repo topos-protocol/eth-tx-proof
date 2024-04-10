@@ -115,21 +115,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "android-tzdata"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e999941b234f3131b00bc13c22d06e8c5ff726d1b6318ac7eb276997bbb4fef0"
-
-[[package]]
-name = "android_system_properties"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "819e7219dbd41043ac279b19830f2efc897156490d7fd6ea916720117ee66311"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "anstream"
 version = "0.6.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -638,11 +623,7 @@ version = "0.4.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a0d04d43504c61aa6c7531f1871dd0d418d91130162063b789da00fd7057a5e"
 dependencies = [
- "android-tzdata",
- "iana-time-zone",
  "num-traits",
- "serde",
- "windows-targets 0.52.4",
 ]
 
 [[package]]
@@ -701,7 +682,7 @@ dependencies = [
  "anstream",
  "anstyle",
  "clap_lex",
- "strsim 0.11.0",
+ "strsim",
 ]
 
 [[package]]
@@ -791,7 +772,7 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "clap",
- "evm_arithmetization 0.1.3 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
+ "evm_arithmetization",
  "plonky2",
  "proof_gen",
  "thiserror",
@@ -1005,48 +986,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "darling"
-version = "0.20.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54e36fcd13ed84ffdfda6f5be89b31287cbb80c439841fe69e04841435464391"
-dependencies = [
- "darling_core",
- "darling_macro",
-]
-
-[[package]]
-name = "darling_core"
-version = "0.20.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c2cf1c23a687a1feeb728783b993c4e1ad83d99f351801977dd809b48d0a70f"
-dependencies = [
- "fnv",
- "ident_case",
- "proc-macro2",
- "quote",
- "strsim 0.10.0",
- "syn 2.0.55",
-]
-
-[[package]]
-name = "darling_macro"
-version = "0.20.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a668eda54683121533a393014d8692171709ff57a7d61f187b6e782719f8933f"
-dependencies = [
- "darling_core",
- "quote",
- "syn 2.0.55",
-]
-
-[[package]]
 name = "dashmap"
 version = "5.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "978747c1d849a7d2ee5e8adc0159961c48fb7e5db2f06af6723b80123bb53856"
 dependencies = [
  "cfg-if",
- "hashbrown 0.14.3",
+ "hashbrown",
  "lock_api",
  "once_cell",
  "parking_lot_core",
@@ -1075,7 +1021,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b42b6fa04a440b495c8b04d0e71b707c585f83cb9cb28cf8cd0d976c315e31b4"
 dependencies = [
  "powerfmt",
- "serde",
 ]
 
 [[package]]
@@ -1258,17 +1203,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ffccbb6966c05b32ef8fbac435df276c4ae4d3dc55a8cd0eb9745e6c12f546a"
 dependencies = [
  "heck 0.4.1",
- "proc-macro2",
- "quote",
- "syn 2.0.55",
-]
-
-[[package]]
-name = "enumn"
-version = "0.1.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fd000fd6988e73bbe993ea3db9b1aa64906ab88766d654973924340c8cddb42"
-dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.55",
@@ -1672,54 +1606,19 @@ dependencies = [
 [[package]]
 name = "evm_arithmetization"
 version = "0.1.3"
-source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=develop#423e2614d31d323e950b4a461a27ef565a820b75"
-dependencies = [
- "anyhow",
- "bytes",
- "env_logger",
- "ethereum-types",
- "hashbrown 0.14.3",
- "hex-literal",
- "itertools",
- "jemallocator",
- "keccak-hash 0.10.0",
- "log",
- "mpt_trie 0.2.1 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=develop)",
- "num",
- "num-bigint",
- "once_cell",
- "pest",
- "pest_derive",
- "plonky2",
- "plonky2_maybe_rayon",
- "plonky2_util",
- "rand",
- "rand_chacha",
- "rlp",
- "rlp-derive",
- "serde",
- "serde_json",
- "starky",
- "static_assertions",
- "tiny-keccak",
-]
-
-[[package]]
-name = "evm_arithmetization"
-version = "0.1.3"
 source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen#8ab1df1c965a541016d4ebcd7df360b6c46370dd"
 dependencies = [
  "anyhow",
  "bytes",
  "env_logger",
  "ethereum-types",
- "hashbrown 0.14.3",
+ "hashbrown",
  "hex-literal",
  "itertools",
  "jemallocator",
  "keccak-hash 0.10.0",
  "log",
- "mpt_trie 0.2.1 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
+ "mpt_trie",
  "num",
  "num-bigint",
  "once_cell",
@@ -2090,7 +1989,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http 0.2.12",
- "indexmap 2.2.6",
+ "indexmap",
  "slab",
  "tokio",
  "tokio-util",
@@ -2115,12 +2014,6 @@ checksum = "b0c35f58762feb77d74ebe43bdbc3210f09be9fe6742234d573bacc26ed92b67"
 dependencies = [
  "byteorder",
 ]
-
-[[package]]
-name = "hashbrown"
-version = "0.12.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 
 [[package]]
 name = "hashbrown"
@@ -2374,35 +2267,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "iana-time-zone"
-version = "0.1.60"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7ffbb5a1b541ea2561f8c41c087286cc091e21e556a4f09a8f6cbf17b69b141"
-dependencies = [
- "android_system_properties",
- "core-foundation-sys",
- "iana-time-zone-haiku",
- "js-sys",
- "wasm-bindgen",
- "windows-core",
-]
-
-[[package]]
-name = "iana-time-zone-haiku"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f31827a206f56af32e590ba56d5d2d085f558508192593743f16b2306495269f"
-dependencies = [
- "cc",
-]
-
-[[package]]
-name = "ident_case"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
-
-[[package]]
 name = "idna"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2469,24 +2333,12 @@ checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"
-version = "1.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
-dependencies = [
- "autocfg",
- "hashbrown 0.12.3",
- "serde",
-]
-
-[[package]]
-name = "indexmap"
 version = "2.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
 dependencies = [
  "equivalent",
- "hashbrown 0.14.3",
- "serde",
+ "hashbrown",
 ]
 
 [[package]]
@@ -2722,11 +2574,11 @@ dependencies = [
  "common",
  "dotenvy",
  "ethers",
- "evm_arithmetization 0.1.3 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
+ "evm_arithmetization",
  "futures",
  "hex",
  "itertools",
- "mpt_trie 0.2.1 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
+ "mpt_trie",
  "ops",
  "paladin-core",
  "plonky2",
@@ -2737,7 +2589,6 @@ dependencies = [
  "serde_path_to_error",
  "smt_trie",
  "tokio",
- "trace_decoder",
  "tracing",
  "tracing-subscriber",
 ]
@@ -2869,26 +2720,6 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.48.0",
-]
-
-[[package]]
-name = "mpt_trie"
-version = "0.2.1"
-source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=develop#423e2614d31d323e950b4a461a27ef565a820b75"
-dependencies = [
- "bytes",
- "enum-as-inner",
- "ethereum-types",
- "hex",
- "keccak-hash 0.10.0",
- "log",
- "num",
- "num-traits",
- "parking_lot",
- "rlp",
- "serde",
- "thiserror",
- "uint",
 ]
 
 [[package]]
@@ -3108,12 +2939,11 @@ version = "0.1.0"
 dependencies = [
  "common",
  "ethers",
- "evm_arithmetization 0.1.3 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
+ "evm_arithmetization",
  "paladin-core",
  "proof_gen",
  "rlp",
  "serde",
- "trace_decoder",
  "tracing",
 ]
 
@@ -3356,7 +3186,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1d3afd2628e69da2be385eb6f2fd57c8ac7977ceeff6dc166ff1657b0e386a9"
 dependencies = [
  "fixedbitset",
- "indexmap 2.2.6",
+ "indexmap",
 ]
 
 [[package]]
@@ -3500,7 +3330,7 @@ dependencies = [
  "ahash",
  "anyhow",
  "getrandom",
- "hashbrown 0.14.3",
+ "hashbrown",
  "itertools",
  "keccak-hash 0.8.0",
  "log",
@@ -3685,7 +3515,7 @@ version = "0.1.3"
 source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen#8ab1df1c965a541016d4ebcd7df360b6c46370dd"
 dependencies = [
  "ethereum-types",
- "evm_arithmetization 0.1.3 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen)",
+ "evm_arithmetization",
  "log",
  "paste",
  "plonky2",
@@ -4365,36 +4195,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_with"
-version = "3.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee80b0e361bbf88fd2f6e242ccd19cfda072cb0faa6ae694ecee08199938569a"
-dependencies = [
- "base64 0.21.7",
- "chrono",
- "hex",
- "indexmap 1.9.3",
- "indexmap 2.2.6",
- "serde",
- "serde_derive",
- "serde_json",
- "serde_with_macros",
- "time",
-]
-
-[[package]]
-name = "serde_with_macros"
-version = "3.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6561dc161a9224638a31d876ccdfefbc1df91d3f3a8342eddb35f055d48c7655"
-dependencies = [
- "darling",
- "proc-macro2",
- "quote",
- "syn 2.0.55",
-]
-
-[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4582,7 +4382,7 @@ checksum = "acf2fe03f53197fbd5e2f2e5fbb809f8e953881cc729261b55f71134323bbfd6"
 dependencies = [
  "ahash",
  "anyhow",
- "hashbrown 0.14.3",
+ "hashbrown",
  "itertools",
  "log",
  "num-bigint",
@@ -4609,12 +4409,6 @@ dependencies = [
  "phf_shared 0.10.0",
  "precomputed-hash",
 ]
-
-[[package]]
-name = "strsim"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "strsim"
@@ -4997,7 +4791,7 @@ version = "0.19.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b5bb770da30e5cbfde35a2d7b9b8a2c4b8ef89548a7a6aeab5c9a576e3e7421"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap",
  "toml_datetime",
  "winnow 0.5.40",
 ]
@@ -5008,7 +4802,7 @@ version = "0.20.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70f427fce4d84c72b5b732388bf4a9f4531b53f74e2887e3ecb2481f68f66d81"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap",
  "toml_datetime",
  "winnow 0.5.40",
 ]
@@ -5019,7 +4813,7 @@ version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a8534fd7f78b5405e860340ad6575217ce99f38d4d5c8f2442cb5ecb50090e1"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap",
  "toml_datetime",
  "winnow 0.5.40",
 ]
@@ -5030,7 +4824,7 @@ version = "0.22.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e40bb779c5187258fd7aad0eb68cb8706a0a81fa712fbea808ab43c4b8374c4"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap",
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -5064,30 +4858,6 @@ name = "tower-service"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
-
-[[package]]
-name = "trace_decoder"
-version = "0.3.0"
-source = "git+https://github.com/0xPolygonZero/zk_evm.git?branch=type2/proof_gen#8ab1df1c965a541016d4ebcd7df360b6c46370dd"
-dependencies = [
- "bytes",
- "ciborium",
- "ciborium-io",
- "enum-as-inner",
- "enumn",
- "ethereum-types",
- "evm_arithmetization 0.1.3 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=develop)",
- "hex",
- "hex-literal",
- "keccak-hash 0.10.0",
- "log",
- "mpt_trie 0.2.1 (git+https://github.com/0xPolygonZero/zk_evm.git?branch=develop)",
- "rlp",
- "rlp-derive",
- "serde",
- "serde_with",
- "thiserror",
-]
 
 [[package]]
 name = "tracing"
@@ -5484,15 +5254,6 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
-
-[[package]]
-name = "windows-core"
-version = "0.52.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33ab640c8d7e35bf8ba19b884ba838ceb4fba93a4e8c65a9059d08afcfc683d9"
-dependencies = [
- "windows-targets 0.52.4",
-]
 
 [[package]]
 name = "windows-sys"

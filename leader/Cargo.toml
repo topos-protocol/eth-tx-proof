@@ -28,7 +28,7 @@ serde_json = "1.0.108"
 serde_path_to_error = "0.1.14"
 smt_trie = { workspace = true }
 tokio = { workspace = true }
-trace_decoder = { workspace = true }
+# trace_decoder = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 

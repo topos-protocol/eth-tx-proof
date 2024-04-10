@@ -17,7 +17,10 @@ use mpt_trie::{
     nibbles::Nibbles, partial_trie::HashedPartialTrie, trie_subsets::create_trie_subset,
 };
 use smt_trie::smt::hash_serialize_u256;
-use trace_decoder::types::{HashedAccountAddr, HashedNodeAddr};
+
+// use trace_decoder::types::{HashedAccountAddr, HashedNodeAddr};
+pub type HashedAccountAddr = H256;
+pub type HashedNodeAddr = H256;
 
 use crate::{utils::keccak, PartialTrieState};
 

@@ -20,7 +20,7 @@ plonky2 = "0.2.1"
 smt_trie = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "type2/proof_gen" }
 mpt_trie = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "type2/proof_gen" }
 evm_arithmetization = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "type2/proof_gen" }
-trace_decoder = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "type2/proof_gen" }
+# trace_decoder = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "type2/proof_gen" }
 proof_gen = { git = "https://github.com/0xPolygonZero/zk_evm.git", branch = "type2/proof_gen" }
 
 [profile.release]

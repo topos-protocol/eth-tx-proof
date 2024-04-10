@@ -28,7 +28,9 @@ use rpc::{CliqueGetSignersAtHashResponse, EthChainIdResponse};
 use smt_trie::code::hash_bytecode_u256;
 use smt_trie::db::MemoryDb;
 use smt_trie::smt::Smt;
-use trace_decoder::types::TrieRootHash;
+
+// use trace_decoder::types::TrieRootHash;
+pub type TrieRootHash = H256;
 
 use crate::utils::{has_storage_deletion, keccak};
 use crate::{
@@ -254,11 +256,25 @@ pub async fn gather_witness(
             provider,
         )
         .await?;
-        insert_smt(&mut state_smt, proof.iter().map(|bytes| bytes.to_vec()).flatten().collect::<Vec<u8>>());
+        insert_smt(
+            &mut state_smt,
+            proof
+                .iter()
+                .map(|bytes| bytes.to_vec())
+                .flatten()
+                .collect::<Vec<u8>>(),
+        );
 
         let (next_proof, next_storage_proof, _next_storage_hash, _next_account_is_empty) =
             get_proof(*address, storage_keys, block_number.into(), provider).await?;
-        insert_smt(&mut state_smt, next_proof.iter().map(|bytes| bytes.to_vec()).flatten().collect::<Vec<u8>>());
+        insert_smt(
+            &mut state_smt,
+            next_proof
+                .iter()
+                .map(|bytes| bytes.to_vec())
+                .flatten()
+                .collect::<Vec<u8>>(),
+        );
 
         let key = keccak(address.0);
         // if !empty_storage {
@@ -309,11 +325,25 @@ pub async fn gather_witness(
                     provider,
                 )
                 .await?;
-                insert_smt(&mut state_smt, proof.iter().map(|bytes| bytes.to_vec()).flatten().collect::<Vec<u8>>());
+                insert_smt(
+                    &mut state_smt,
+                    proof
+                        .iter()
+                        .map(|bytes| bytes.to_vec())
+                        .flatten()
+                        .collect::<Vec<u8>>(),
+                );
 
                 let (next_proof, next_storage_proof, _next_storage_hash, _next_account_is_empty) =
                     get_proof(address, storage_keys, block_number.into(), provider).await?;
-                insert_smt(&mut state_smt, next_proof.iter().map(|bytes| bytes.to_vec()).flatten().collect::<Vec<u8>>());
+                insert_smt(
+                    &mut state_smt,
+                    next_proof
+                        .iter()
+                        .map(|bytes| bytes.to_vec())
+                        .flatten()
+                        .collect::<Vec<u8>>(),
+                );
 
                 let key = keccak(address.0);
                 // if !empty_storage {
@@ -336,7 +366,14 @@ pub async fn gather_witness(
         for w in v {
             let (proof, _storage_proof, _storage_hash, _account_is_empty) =
                 get_proof(w.address, vec![], (block_number - 1).into(), provider).await?;
-            insert_smt(&mut state_smt, proof.iter().map(|bytes| bytes.to_vec()).flatten().collect::<Vec<u8>>());
+            insert_smt(
+                &mut state_smt,
+                proof
+                    .iter()
+                    .map(|bytes| bytes.to_vec())
+                    .flatten()
+                    .collect::<Vec<u8>>(),
+            );
         }
     }
 
@@ -377,8 +414,8 @@ pub async fn gather_witness(
         .collect();
     unimplemented!()
     // let mut proof_gen_ir = Vec::new();
-    // for (i, (tx, mut touched, signed_txn)) in izip!(txns_info, traces, txn_rlps)
-    //     .enumerate()
+    // for (i, (tx, mut touched, signed_txn)) in izip!(txns_info, traces,
+    // txn_rlps)     .enumerate()
     //     .take(tx_index + 1)
     // {
     //     tracing::info!("Processing {}-th transaction: {:?}", i, tx.hash);
@@ -393,8 +430,8 @@ pub async fn gather_witness(
     //         &mut contract_codes,
     //         trace,
     //     );
-    //     // For the last tx, we want to include the withdrawal addresses in the state
-    //     // trie.
+    //     // For the last tx, we want to include the withdrawal addresses in
+    // the state     // trie.
     //     if last_tx {
     //         for (addr, _) in &wds {
     //             if !touched.contains_key(addr) {
@@ -409,14 +446,16 @@ pub async fn gather_witness(
     //         has_storage_deletion,
     //     );
     //     assert_eq!(trimmed_state_smt.hash(), state_smt.hash());
-    //     let receipt = provider.get_transaction_receipt(tx.hash).await?.unwrap();
+    //     let receipt =
+    // provider.get_transaction_receipt(tx.hash).await?.unwrap();
     //     let mut new_bloom = bloom;
     //     new_bloom.accrue_bloom(&receipt.logs_bloom);
     //     let mut new_txns_mpt = txns_mpt.clone();
     //     new_txns_mpt
     //         .insert(
-    //             Nibbles::from_bytes_be(&rlp::encode(&receipt.transaction_index)).unwrap(),
-    //             signed_txn.clone(),
+    //             
+    // Nibbles::from_bytes_be(&rlp::encode(&receipt.transaction_index)).
+    // unwrap(),             signed_txn.clone(),
     //         )
     //         .unwrap();
     //     let mut new_receipts_mpt = receipts_mpt.clone();
@@ -426,15 +465,16 @@ pub async fn gather_witness(
     //     }
     //     new_receipts_mpt
     //         .insert(
-    //             Nibbles::from_bytes_be(&rlp::encode(&receipt.transaction_index)).unwrap(),
-    //             bytes,
+    //             
+    // Nibbles::from_bytes_be(&rlp::encode(&receipt.transaction_index)).
+    // unwrap(),             bytes,
     //         )
     //         .unwrap();
 
     //     // Use withdrawals for the last tx in the block.
     //     let _withdrawals = if last_tx { wds.clone() } else { vec![] };
-    //     // For the last tx, we check that the final trie roots match those in the block
-    //     // header.
+    //     // For the last tx, we check that the final trie roots match those in
+    // the block     // header.
 
     //     let trie_roots_after = if last_tx {
     //         TrieRoots {
@@ -462,8 +502,8 @@ pub async fn gather_witness(
     //         block_hashes: block_hashes.clone(),
     //         gas_used_before: gas_used,
     //         gas_used_after: gas_used + receipt.gas_used.unwrap(),
-    //         checkpoint_state_trie_root: prev_block.state_root, // TODO: make it configurable
-    //         trie_roots_after,
+    //         checkpoint_state_trie_root: prev_block.state_root, // TODO: make
+    // it configurable         trie_roots_after,
     //         txn_number_before: receipt.transaction_index.0[0].into(),
     //     };
 
@@ -491,14 +531,15 @@ pub async fn gather_witness(
     //         receipt: ir.tries.receipts_trie.clone(),
     //     })
     //     .unwrap_or_else(|| {
-    //         // No starting tries to work with, so we will have tries that are 100% hashed
-    //         // out.
+    //         // No starting tries to work with, so we will have tries that are
+    // 100% hashed         // out.
     //         PartialTrieState {
-    //             state: create_fully_hashed_out_trie_from_hash(block.state_root),
-    //             txn: create_fully_hashed_out_trie_from_hash(EMPTY_TRIE_HASH),
-    //             receipt: create_fully_hashed_out_trie_from_hash(EMPTY_TRIE_HASH),
-    //             storage: HashMap::default(),
-    //         }
+    //             state:
+    // create_fully_hashed_out_trie_from_hash(block.state_root),            
+    // txn: create_fully_hashed_out_trie_from_hash(EMPTY_TRIE_HASH),
+    //             receipt:
+    // create_fully_hashed_out_trie_from_hash(EMPTY_TRIE_HASH),             
+    // storage: HashMap::default(),         }
     //     });
 
     // let initial_extra_data = ExtraBlockData {
