@@ -13,6 +13,7 @@ use anyhow::{anyhow, Result};
 use ethers::prelude::*;
 use ethers::types::GethDebugTracerType;
 use ethers::utils::rlp;
+use evm_arithmetization::generation::mpt::AccountRlp;
 use evm_arithmetization::generation::{GenerationInputs, TrieInputs};
 use evm_arithmetization::proof::TrieRoots;
 use evm_arithmetization::proof::{BlockMetadata, ExtraBlockData};
@@ -26,7 +27,8 @@ use padding_and_withdrawals::{
 use plonky2::field::goldilocks_field::GoldilocksField;
 use rpc::{CliqueGetSignersAtHashResponse, EthChainIdResponse};
 use smt_trie::code::hash_bytecode_u256;
-use smt_trie::db::MemoryDb;
+use smt_trie::db::{Db, MemoryDb};
+use smt_trie::keys::{key_balance, key_code, key_code_length, key_nonce, key_storage};
 use smt_trie::smt::Smt;
 
 // use trace_decoder::types::TrieRootHash;
@@ -63,6 +65,21 @@ struct PartialTrieState {
     state: HashedPartialTrie,
     txn: HashedPartialTrie,
     receipt: HashedPartialTrie,
+}
+
+fn set_account<D: Db>(
+    smt: &mut Smt<D>,
+    addr: Address,
+    account: &AccountRlp,
+    storage: &HashMap<U256, U256>,
+) {
+    smt.set(key_balance(addr), account.balance);
+    smt.set(key_nonce(addr), account.nonce);
+    smt.set(key_code(addr), account.code_hash);
+    smt.set(key_code_length(addr), account.code_length);
+    for (&k, &v) in storage {
+        smt.set(key_storage(addr, k), v);
+    }
 }
 
 /// Get the proof for an account + storage locations at a given block number.
@@ -184,6 +201,7 @@ pub async fn gather_witness(
         .ok_or_else(|| anyhow!("Block not found. Block number: {}", block_number))?;
 
     let mut state_smt = SmtData::default();
+    let mut smt = Smt::<MemoryDb>::default();
     let mut contract_codes = contract_codes();
     let mut storage_mpts: HashMap<[GoldilocksField; 4], Mpt> = HashMap::new();
     let mut txn_rlps = vec![];
@@ -243,40 +261,49 @@ pub async fn gather_witness(
     }
 
     for (address, account) in &state {
-        let AccountState { code, storage, .. } = account;
-        let empty_storage = storage.is_none();
-        let mut storage_keys = vec![];
-        if let Some(stor) = storage {
-            storage_keys.extend(stor.keys().copied());
+        println!("Addr: {:?}\nAcc: {:?}", address, account);
+        insert_smt(&mut smt, address, &account);
+
+        if let Some(code) = account.code.as_ref() {
+            let code = hex::decode(&code[2..])?;
+            let codehash = keccak(&code);
+            contract_codes.insert(codehash.into(), code);
         }
-        let (proof, storage_proof, storage_hash, _account_is_empty) = get_proof(
-            *address,
-            storage_keys.clone(),
-            (block_number - 1).into(),
-            provider,
-        )
-        .await?;
-        insert_smt(
-            &mut state_smt,
-            proof
-                .iter()
-                .map(|bytes| bytes.to_vec())
-                .flatten()
-                .collect::<Vec<u8>>(),
-        );
 
-        let (next_proof, next_storage_proof, _next_storage_hash, _next_account_is_empty) =
-            get_proof(*address, storage_keys, block_number.into(), provider).await?;
-        insert_smt(
-            &mut state_smt,
-            next_proof
-                .iter()
-                .map(|bytes| bytes.to_vec())
-                .flatten()
-                .collect::<Vec<u8>>(),
-        );
+        // let AccountState { code, storage, .. } = account;
+        // let empty_storage = storage.is_none();
+        // let mut storage_keys = vec![];
+        // if let Some(stor) = storage {
+        //     storage_keys.extend(stor.keys().copied());
+        // }
+        // let (proof, storage_proof, storage_hash, _account_is_empty) =
+        // get_proof(     *address,
+        //     storage_keys.clone(),
+        //     (block_number - 1).into(),
+        //     provider,
+        // )
+        // .await?;
+        // insert_smt(
+        //     &mut state_smt,
+        //     proof
+        //         .iter()
+        //         .map(|bytes| bytes.to_vec())
+        //         .flatten()
+        //         .collect::<Vec<u8>>(),
+        // );
 
-        let key = keccak(address.0);
+        // let (next_proof, next_storage_proof, _next_storage_hash,
+        // _next_account_is_empty) =     get_proof(*address, storage_keys,
+        // block_number.into(), provider).await?; insert_smt(
+        //     &mut state_smt,
+        //     next_proof
+        //         .iter()
+        //         .map(|bytes| bytes.to_vec())
+        //         .flatten()
+        //         .collect::<Vec<u8>>(),
+        // );
+
+        // let key = keccak(address.0);
         // if !empty_storage {
         //     let mut storage_mpt = Mpt::new();
         //     storage_mpt.root = storage_hash;
@@ -288,11 +315,6 @@ pub async fn gather_witness(
         //     }
         //     storage_mpts.insert(key.into(), storage_mpt);
         // }
-        if let Some(code) = code {
-            let code = hex::decode(&code[2..])?;
-            let codehash = keccak(&code);
-            contract_codes.insert(codehash.into(), code);
-        }
     }
 
     for &hash in block.transactions.iter().take(tx_index + 1) {
@@ -312,40 +334,43 @@ pub async fn gather_witness(
 
         for d in [pre, post] {
             for (address, account) in d {
-                let AccountState { storage, .. } = account;
-                let empty_storage = storage.is_none();
-                let mut storage_keys = vec![];
-                if let Some(stor) = storage {
-                    storage_keys.extend(stor.keys().copied());
-                }
-                let (proof, storage_proof, _storage_hash, _account_is_empty) = get_proof(
-                    address,
-                    storage_keys.clone(),
-                    (block_number - 1).into(),
-                    provider,
-                )
-                .await?;
-                insert_smt(
-                    &mut state_smt,
-                    proof
-                        .iter()
-                        .map(|bytes| bytes.to_vec())
-                        .flatten()
-                        .collect::<Vec<u8>>(),
-                );
+                // let AccountState { storage, .. } = account;
+                // let empty_storage = storage.is_none();
+                // let mut storage_keys = vec![];
+                // if let Some(stor) = storage {
+                //     storage_keys.extend(stor.keys().copied());
+                // }
+                // let (proof, storage_proof, _storage_hash, _account_is_empty) = get_proof(
+                // //     address,     storage_keys.clone(),
+                //     (block_number - 1).into(),
+                //     provider,
+                // )
+                // .await?;
 
-                let (next_proof, next_storage_proof, _next_storage_hash, _next_account_is_empty) =
-                    get_proof(address, storage_keys, block_number.into(), provider).await?;
-                insert_smt(
-                    &mut state_smt,
-                    next_proof
-                        .iter()
-                        .map(|bytes| bytes.to_vec())
-                        .flatten()
-                        .collect::<Vec<u8>>(),
-                );
+                insert_smt(&mut smt, &address, &account);
 
-                let key = keccak(address.0);
+                // insert_smt(
+                //     &mut state_smt,
+                //     proof
+                //         .iter()
+                //         .map(|bytes| bytes.to_vec())
+                //         .flatten()
+                //         .collect::<Vec<u8>>(),
+                // );
+
+                // let (next_proof, next_storage_proof, _next_storage_hash,
+                // _next_account_is_empty) =     get_proof(address,
+                // storage_keys, block_number.into(), provider).await?;
+                // insert_smt(
+                //     &mut state_smt,
+                //     next_proof
+                //         .iter()
+                //         .map(|bytes| bytes.to_vec())
+                //         .flatten()
+                //         .collect::<Vec<u8>>(),
+                // );
+
+                // let key = keccak(address.0);
                 // if !empty_storage {
                 //     let mut storage_mpt = Mpt::new();
                 //     let storage_mpt = storage_mpts
@@ -362,20 +387,20 @@ pub async fn gather_witness(
         }
     }
 
-    if let Some(v) = &block.withdrawals {
-        for w in v {
-            let (proof, _storage_proof, _storage_hash, _account_is_empty) =
-                get_proof(w.address, vec![], (block_number - 1).into(), provider).await?;
-            insert_smt(
-                &mut state_smt,
-                proof
-                    .iter()
-                    .map(|bytes| bytes.to_vec())
-                    .flatten()
-                    .collect::<Vec<u8>>(),
-            );
-        }
-    }
+    // if let Some(v) = &block.withdrawals {
+    //     for w in v {
+    //         let (proof, _storage_proof, _storage_hash, _account_is_empty) =
+    //             get_proof(w.address, vec![], (block_number - 1).into(),
+    // provider).await?;         insert_smt(
+    //             &mut state_smt,
+    //             proof
+    //                 .iter()
+    //                 .map(|bytes| bytes.to_vec())
+    //                 .flatten()
+    //                 .collect::<Vec<u8>>(),
+    //         );
+    //     }
+    // }
 
     let prev_block = provider
         .get_block(block_number - 1)
@@ -397,13 +422,14 @@ pub async fn gather_witness(
     let mut bloom: Bloom = Bloom::zero();
 
     // Withdrawals
-    let wds = if let Some(v) = &block.withdrawals {
-        v.iter()
-            .map(|w| (w.address, w.amount * 1_000_000_000)) // Alchemy returns Gweis for some reason
-            .collect()
-    } else {
-        vec![]
-    };
+    // let wds = if let Some(v) = &block.withdrawals {
+    //     v.iter()
+    //         .map(|w| (w.address, w.amount * 1_000_000_000)) // Alchemy returns
+    // Gweis for some reason         .collect()
+    // } else {
+    //     vec![]
+    // };
+    let wds: Vec<(H160, U256)> = vec![];
 
     // Block hashes
     let block_hashes = get_block_hashes(block_number, provider.url().as_ref()).await?;
@@ -453,7 +479,7 @@ pub async fn gather_witness(
     //     let mut new_txns_mpt = txns_mpt.clone();
     //     new_txns_mpt
     //         .insert(
-    //             
+    //
     // Nibbles::from_bytes_be(&rlp::encode(&receipt.transaction_index)).
     // unwrap(),             signed_txn.clone(),
     //         )
@@ -465,7 +491,7 @@ pub async fn gather_witness(
     //     }
     //     new_receipts_mpt
     //         .insert(
-    //             
+    //
     // Nibbles::from_bytes_be(&rlp::encode(&receipt.transaction_index)).
     // unwrap(),             bytes,
     //         )
@@ -535,10 +561,10 @@ pub async fn gather_witness(
     // 100% hashed         // out.
     //         PartialTrieState {
     //             state:
-    // create_fully_hashed_out_trie_from_hash(block.state_root),            
+    // create_fully_hashed_out_trie_from_hash(block.state_root),
     // txn: create_fully_hashed_out_trie_from_hash(EMPTY_TRIE_HASH),
     //             receipt:
-    // create_fully_hashed_out_trie_from_hash(EMPTY_TRIE_HASH),             
+    // create_fully_hashed_out_trie_from_hash(EMPTY_TRIE_HASH),
     // storage: HashMap::default(),         }
     //     });
 

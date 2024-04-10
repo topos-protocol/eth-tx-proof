@@ -9,14 +9,13 @@ use mpt_trie::partial_trie::PartialTrie;
 use mpt_trie::partial_trie::{HashedPartialTrie, Node};
 use mpt_trie::trie_subsets::create_trie_subset;
 use plonky2::field::goldilocks_field::GoldilocksField as F;
-use plonky2::field::types::Field;
 use plonky2::hash::poseidon::Poseidon;
 use smt_trie::code::hash_bytecode_u256;
 use smt_trie::db::MemoryDb;
 use smt_trie::smt::{Key, Node as SmtNode, Smt};
 
 use crate::utils::keccak;
-use crate::EMPTY_TRIE_HASH;
+use crate::{set_account, EMPTY_TRIE_HASH};
 
 #[derive(Clone, Debug)]
 pub struct MptNode(Vec<u8>);
@@ -140,18 +139,37 @@ impl SmtData {
     }
 }
 
-pub fn insert_smt(smt: &mut SmtData, proof: Vec<u8>) {
-    // Nodes are serialized as 12 Field elements? 
-    for p in proof.chunks_exact(8*7) {
-        insert_smt_helper(smt, 
-            SmtNode(p.chunks_exact(7)
-            .map(|x| F::from_canonical_u64(u64::from_be_bytes(x.try_into().unwrap())))
-            .collect::<Vec<F>>().try_into().unwrap()));
-    }
+pub fn insert_smt(smt: &mut Smt<MemoryDb>, address: &H160, account: &AccountState) {
+    let acc = AccountRlp {
+        nonce: account.nonce.unwrap_or_default(),
+        balance: account.balance.unwrap_or_default(),
+        code_hash: account
+            .code
+            .as_ref()
+            .map(|c| hash_bytecode_u256(c.as_bytes().to_vec()))
+            .unwrap_or(hash_bytecode_u256(vec![])),
+        code_length: account
+            .code
+            .as_ref()
+            .map(|c| c.as_bytes().len())
+            .unwrap_or_default()
+            .into(),
+    };
+    let storage = account
+        .storage
+        .as_ref()
+        .unwrap_or(&BTreeMap::new())
+        .iter()
+        .map(|(k, v)| (k.into_uint(), v.into_uint()))
+        .collect();
+    set_account(smt, *address, &acc, &storage);
 }
 
 fn insert_smt_helper(smt: &mut SmtData, serialized_node: SmtNode) {
-    smt.smt.insert(Key(F::poseidon(serialized_node.0)[0..4].try_into().unwrap()), serialized_node);
+    smt.smt.insert(
+        Key(F::poseidon(serialized_node.0)[0..4].try_into().unwrap()),
+        serialized_node,
+    );
 
     // TODO: Is this necessary for for smt?
     // let a = rlp::decode_list::<Vec<u8>>(&rlp_node);
