@@ -174,7 +174,8 @@ pub async fn get_block_metadata(
             block_difficulty: block.difficulty,
             block_gaslimit: block.gas_limit,
             block_chain_id,
-            block_base_fee: block.base_fee_per_gas.unwrap(),
+            // block_base_fee: block.base_fee_per_gas.unwrap(),
+            block_base_fee: 0xa.into(), /* TODO: unavailable in Hermez, is there a default value? */
             block_bloom: convert_bloom(block.logs_bloom.unwrap()),
             block_gas_used: block.gas_used,
             block_random: block.mix_hash.unwrap(),
@@ -261,7 +262,6 @@ pub async fn gather_witness(
     }
 
     for (address, account) in &state {
-        println!("Addr: {:?}\nAcc: {:?}", address, account);
         insert_smt(&mut smt, address, &account);
 
         if let Some(code) = account.code.as_ref() {
